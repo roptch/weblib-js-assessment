@@ -1,8 +1,8 @@
-import http from 'http';
+const http = require('http');
 
-import config from '../config/main';
-import logger from './logger';
-import app from './app';
+const config = require('../config/main');
+const logger = require('./logger');
+const app = require('./app');
 
 const server = http.createServer(app);
 server.listen(config.server.port, () => {
