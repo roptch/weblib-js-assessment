@@ -3,20 +3,25 @@ const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 
 const config = require('../config/auth');
-const { User, RefreshToken } = require('./models');
+const { User, RefreshToken, Team } = require('./models');
 
 const setReqUser = (req, res, next) => {
   if (!req.payload || !req.payload.id) {
     return next();
   }
 
-  User.findOne({ where: { id: req.payload.id } })
+  return User.findByPk(req.payload.id, {
+    include: [{
+      model: Team,
+      as: 'team',
+    }],
+  })
     .then((user) => {
       if (user) {
         req.user = user;
       }
 
-      next();
+      return next();
     });
 };
 

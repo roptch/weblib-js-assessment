@@ -6,7 +6,9 @@ const sequelize = require('sequelize');
 const { authType, generateUserToken, generateUserRefreshToken } = require('../auth');
 const authConfig = require('../../config/auth');
 
-const { User, RefreshToken, Team } = require('../models');
+const {
+  User, RefreshToken, Team, Transfer,
+} = require('../models');
 
 const { UniqueConstraintError } = sequelize;
 
@@ -217,6 +219,30 @@ router.get('/me', authType.required, async (req, res) => {
   return res.json({
     ...req.user.json(),
     ownedTeams: ownedTeams.map((ownedTeam) => ownedTeam.json()),
+  });
+});
+
+router.get('/me/transfers', authType.required, async (req, res) => {
+  const transfers = await Transfer.findAll({
+    where: { playerId: req.user.id },
+    order: [['status', 'ASC']],
+    include: [{
+      model: Team,
+      as: 'initialTeam',
+    }, {
+      model: Team,
+      as: 'targetTeam',
+    }],
+  });
+
+  return res.json({
+    transfers: transfers.map((transfer) => ({
+      id: transfer.id,
+      player: req.user.json(),
+      initialTeam: transfer.initialTeam && transfer.initialTeam.json(),
+      targetTeam: transfer.targetTeam.json(),
+      ...transfer.json(),
+    })),
   });
 });
 

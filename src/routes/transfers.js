@@ -1,4 +1,5 @@
 const express = require('express');
+const { Op } = require('sequelize');
 
 const { authType } = require('../auth');
 const { User, Team, Transfer } = require('../models');
@@ -99,10 +100,103 @@ router.post('/', authType.required, async (req, res) => {
   });
 
   return res.json({
-    ...transfer.json(),
-    player: player.json(),
-    initialTeam: player.team && player.team.json(),
-    targetTeam: targetTeam.json(),
+    transfer: {
+      ...transfer.json(),
+      player: player.json(),
+      initialTeam: player.team && player.team.json(),
+      targetTeam: targetTeam.json(),
+    },
+  });
+});
+
+router.put('/:transferId', authType.required, async (req, res) => {
+  const transfer = await Transfer.findByPk(req.params.transferId, {
+    include: [{
+      model: User,
+      as: 'player',
+    }, {
+      model: Team,
+      as: 'initialTeam',
+      include: [{
+        model: User,
+        as: 'owner',
+      }],
+    }, {
+      model: Team,
+      as: 'targetTeam',
+      include: [{
+        model: User,
+        as: 'owner',
+      }],
+    }],
+  });
+  if (!transfer) {
+    return res.status(404).json({
+      errors: [{
+        title: 'Transfer not found',
+      }],
+    });
+  }
+
+  if (!('accept' in req.body)) {
+    return res.status(400).json({
+      errors: [{
+        title: 'Missing fields',
+        detail: 'Required fields: accept',
+      }],
+    });
+  }
+
+  let updated = false;
+  if (transfer.status === Transfer.statuses.WAITING_TEAM_APPROVAL
+    && transfer.initialTeam && transfer.initialTeam.owner.id === req.user.id
+  ) {
+    transfer.status = req.body.accept
+      ? Transfer.statuses.WAITING_PLAYER_APPROVAL
+      : Transfer.statuses.REJECTED_BY_TEAM;
+    await transfer.save();
+    updated = true;
+  } else if (transfer.status === Transfer.statuses.WAITING_PLAYER_APPROVAL
+    && req.user.id === transfer.player.id
+  ) {
+    transfer.status = req.body.accept
+      ? Transfer.statuses.SUCCESS
+      : Transfer.statuses.REJECTED_BY_PLAYER;
+    await transfer.save();
+
+    if (transfer.status === Transfer.statuses.SUCCESS) {
+      await Promise.all([
+        Transfer.update({ status: Transfer.statuses.REJECTED_BY_PLAYER }, {
+          where: {
+            status: {
+              [Op.or]: [
+                Transfer.statuses.WAITING_TEAM_APPROVAL,
+                Transfer.statuses.WAITING_PLAYER_APPROVAL,
+              ],
+            },
+          },
+        }),
+        transfer.player.setTeam(transfer.targetTeam),
+      ]);
+    }
+    updated = true;
+  }
+
+  if (updated) {
+    return res.json({
+      transfer: {
+        ...transfer.json(),
+        player: transfer.player.json(),
+        initialTeam: transfer.initialTeam && transfer.initialTeam.json(),
+        targetTeam: transfer.targetTeam.json(),
+      },
+    });
+  }
+
+  return res.status(400).json({
+    errors: [{
+      title: 'You cannot act on this transfer',
+    }],
   });
 });
 

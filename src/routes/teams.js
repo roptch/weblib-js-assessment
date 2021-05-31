@@ -1,7 +1,7 @@
 const express = require('express');
 
 const { authType } = require('../auth');
-const { User, Team } = require('../models');
+const { User, Team, Transfer } = require('../models');
 
 const router = express.Router();
 
@@ -72,6 +72,9 @@ router.put('/:teamId', authType.required, async (req, res) => {
     include: [{
       model: User,
       as: 'players',
+    }, {
+      model: User,
+      as: 'owner',
     }],
   });
   if (!team) {
@@ -82,7 +85,7 @@ router.put('/:teamId', authType.required, async (req, res) => {
     });
   }
 
-  if (team.ownerId !== req.user.id) {
+  if (team.owner.id !== req.user.id) {
     return res.status(401).json({
       errors: [{
         title: 'You are not authorized to manage this team',
@@ -100,7 +103,7 @@ router.put('/:teamId', authType.required, async (req, res) => {
   }
 
   team.name = req.body.team.name;
-  team.save();
+  await team.save();
 
   return res.json({
     team: {
@@ -114,7 +117,7 @@ router.delete('/:teamId', authType.required, async (req, res) => {
   const team = await Team.findByPk(req.params.teamId, {
     include: [{
       model: User,
-      as: 'players',
+      as: 'owner',
     }],
   });
   if (!team) {
@@ -125,7 +128,7 @@ router.delete('/:teamId', authType.required, async (req, res) => {
     });
   }
 
-  if (team.ownerId !== req.user.id) {
+  if (team.owner.id !== req.user.id) {
     return res.status(401).json({
       errors: [{
         title: 'You are not authorized to manage this team',
@@ -137,6 +140,78 @@ router.delete('/:teamId', authType.required, async (req, res) => {
 
   return res.json({
     deleted: true,
+  });
+});
+
+router.get('/:teamId/transfers', authType.required, async (req, res) => {
+  const team = await Team.findByPk(req.params.teamId, {
+    include: [{
+      model: User,
+      as: 'owner',
+    }],
+  });
+  if (!team) {
+    return res.status(404).json({
+      errors: [{
+        title: 'Team not found',
+      }],
+    });
+  }
+
+  if (team.owner.id !== req.user.id) {
+    return res.status(401).json({
+      errors: [{
+        title: 'You are not authorized to manage this team',
+      }],
+    });
+  }
+
+  const transfersOut = await Transfer.findAll({
+    where: { initialTeamId: team.id },
+    order: [['status', 'ASC']],
+    include: [{
+      model: User,
+      as: 'player',
+    }, {
+      model: Team,
+      as: 'initialTeam',
+    }, {
+      model: Team,
+      as: 'targetTeam',
+    }],
+  });
+  const transfersIn = await Transfer.findAll({
+    where: { targetTeamId: team.id },
+    order: [['status', 'ASC']],
+    include: [{
+      model: User,
+      as: 'player',
+    }, {
+      model: Team,
+      as: 'initialTeam',
+    }, {
+      model: Team,
+      as: 'targetTeam',
+    }],
+  });
+
+  return res.json({
+    transfers: {
+      out: transfersOut.map((transfer) => ({
+        id: transfer.id,
+        player: transfer.player.json(),
+        initialTeam: transfer.initialTeam && transfer.initialTeam.json(),
+        targetTeam: transfer.targetTeam.json(),
+        ...transfer.json(),
+      })),
+      in: transfersIn.map((transfer) => ({
+        id: transfer.id,
+        player: transfer.player.json(),
+        initialTeam: transfer.initialTeam && transfer.initialTeam.json(),
+        targetTeam: transfer.targetTeam.json(),
+        ...transfer.json(),
+      })),
+    },
   });
 });
 

@@ -8,8 +8,8 @@ const transfersRouter = require('./routes/transfers');
 
 const app = express();
 
-app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
+app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 
 app.use('/users', usersRouter);
@@ -28,6 +28,8 @@ app.use((err, req, res, next) => {
       }],
     });
   }
+
+  throw err;
 });
 
 module.exports = app;
