@@ -4,6 +4,7 @@ const cookieParser = require('cookie-parser');
 require('./passport');
 const usersRouter = require('./routes/users');
 const teamsRouter = require('./routes/teams');
+const transfersRouter = require('./routes/transfers');
 
 const app = express();
 
@@ -13,6 +14,7 @@ app.use(cookieParser());
 
 app.use('/users', usersRouter);
 app.use('/teams', teamsRouter);
+app.use('/transfers', transfersRouter);
 
 // Catch authorization errors
 app.use((err, req, res, next) => {

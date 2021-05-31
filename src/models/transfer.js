@@ -16,7 +16,7 @@ module.exports = (sequelize, DataTypes) => {
           field: 'playerId',
           allowNull: false,
         },
-        as: 'owner',
+        as: 'player',
       });
 
       Transfer.belongsTo(models.Team, {
