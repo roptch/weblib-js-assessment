@@ -2,7 +2,8 @@ const express = require('express');
 const cookieParser = require('cookie-parser');
 
 require('./passport');
-const userRouter = require('./routes/user');
+const usersRouter = require('./routes/users');
+const teamsRouter = require('./routes/teams');
 
 const app = express();
 
@@ -10,7 +11,8 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 app.use(cookieParser());
 
-app.use('/user', userRouter);
+app.use('/users', usersRouter);
+app.use('/teams', teamsRouter);
 
 // Catch authorization errors
 app.use((err, req, res, next) => {

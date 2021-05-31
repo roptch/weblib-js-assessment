@@ -26,7 +26,7 @@ module.exports = (sequelize, DataTypes) => {
       User.belongsTo(models.Team, {
         foreignKey: {
           field: 'teamId',
-          allowNull: false,
+          allowNull: true,
         },
         as: 'team',
       });
@@ -52,6 +52,15 @@ module.exports = (sequelize, DataTypes) => {
 
     validatePassword(password) {
       return User.generateHash(password, this.salt) === this.hash;
+    }
+
+    json() {
+      return {
+        id: this.id,
+        email: this.email,
+        firstName: this.firstName,
+        lastName: this.lastName,
+      };
     }
   }
 

@@ -35,6 +35,12 @@ module.exports = (sequelize, DataTypes) => {
         as: 'targetTeam',
       });
     }
+
+    json() {
+      return {
+        status: Transfer.statuses[this.status],
+      };
+    }
   }
 
   Transfer.statuses = {

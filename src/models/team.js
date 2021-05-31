@@ -24,6 +24,13 @@ module.exports = (sequelize, DataTypes) => {
         as: 'players',
       });
     }
+
+    json() {
+      return {
+        id: this.id,
+        name: this.name,
+      };
+    }
   }
 
   Team.init({

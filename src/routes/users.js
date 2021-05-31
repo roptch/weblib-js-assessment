@@ -6,7 +6,7 @@ const sequelize = require('sequelize');
 const { authType, generateUserToken, generateUserRefreshToken } = require('../auth');
 const authConfig = require('../../config/auth');
 
-const { User, RefreshToken } = require('../models');
+const { User, RefreshToken, Team } = require('../models');
 
 const { UniqueConstraintError } = sequelize;
 
@@ -17,10 +17,10 @@ router.post('/signup', authType.optional, (req, res) => {
     || !req.body.user.firstName || !req.body.user.lastName
   ) {
     // @TODO: error management
-    return res.status(422).json({
+    return res.status(400).json({
       errors: [{
         title: 'Missing fields',
-        detail: 'Required fields: user.email, user.password, user.firstName, user.lastName',
+        detail: 'Required fields: user[email], user[password], user[firstName], user[lastName]',
       }],
     });
   }
@@ -69,7 +69,7 @@ router.post('/signin', authType.optional, (req, res, next) => {
     return res.status(422).json({
       errors: [{
         title: 'Missing fields',
-        detail: 'Required fields: user.email, user.password',
+        detail: 'Required fields: user[email], user[password]',
       }],
     });
   }
@@ -200,6 +200,24 @@ router.post('/signout', authType.optional, async (req, res, next) => {
 
   res.clearCookie('refreshToken');
   return res.json(ret);
+});
+
+router.get('/me', authType.required, async (req, res) => {
+  if (req.user.team) {
+    // Team player
+
+    return res.json({
+      ...req.user.json(),
+      team: req.user.team.json(),
+    });
+  }
+
+  // Team(s) owner
+  const ownedTeams = await req.user.getOwnedTeams();
+  return res.json({
+    ...req.user.json(),
+    ownedTeams: ownedTeams.map((ownedTeam) => ownedTeam.json()),
+  });
 });
 
 module.exports = router;
