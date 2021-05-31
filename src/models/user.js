@@ -17,6 +17,24 @@ module.exports = (sequelize, DataTypes) => {
         foreignKey: 'userId',
         as: 'refreshTokens',
       });
+
+      User.hasMany(models.Team, {
+        foreignKey: 'ownerId',
+        as: 'ownedTeams',
+      });
+
+      User.belongsTo(models.Team, {
+        foreignKey: {
+          field: 'teamId',
+          allowNull: false,
+        },
+        as: 'team',
+      });
+
+      User.hasMany(models.Transfer, {
+        foreignKey: 'playerId',
+        as: 'transfers',
+      });
     }
 
     static generateSalt() {
