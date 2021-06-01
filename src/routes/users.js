@@ -5,6 +5,8 @@ const sequelize = require('sequelize');
 
 const { authType, generateUserToken, generateUserRefreshToken } = require('../auth');
 const authConfig = require('../../config/auth');
+const validateSchema = require('../middlewares/validateSchema');
+const { userLoginSchema, userRegisterSchema, userRefreshTokenSchema } = require('../schemas/users');
 
 const {
   User, RefreshToken, Team, Transfer,
@@ -14,78 +16,45 @@ const { UniqueConstraintError } = sequelize;
 
 const router = express.Router();
 
-router.post('/signup', authType.optional, (req, res) => {
-  if (!req.body.user || !req.body.user.email || !req.body.user.password
-    || !req.body.user.firstName || !req.body.user.lastName
-  ) {
-    // @TODO: error management
-    return res.status(400).json({
-      errors: [{
-        title: 'Missing fields',
-        detail: 'Required fields: user[email], user[password], user[firstName], user[lastName]',
-      }],
-    });
-  }
-
+router.post('/signup', authType.optional, validateSchema(userRegisterSchema), (req, res) => {
   const user = User.build({
-    email: req.body.user.email,
-    firstName: req.body.user.firstName,
-    lastName: req.body.user.lastName,
+    email: req.body.email,
+    firstName: req.body.firstName,
+    lastName: req.body.lastName,
   });
-  user.setPassword(req.body.user.password);
+  user.setPassword(req.body.password);
 
   return user.save()
     .then(() => res.json({
-      user: {
-        id: user.id,
-        email: user.email,
-        firstName: user.firstName,
-        lastName: user.lastName,
-      },
+      user: user.json(),
     }))
     .catch((err) => {
       if (err instanceof UniqueConstraintError) {
-        // @TODO: error management
         return res.status(400).json({
           errors: [{
-            title: 'User already exists',
-            detail: 'Email already in use',
+            msg: 'User already exists',
           }],
         });
       }
 
-      // @TODO: error management
-      return res.status(400).json({
-        errors: [
-          {
-            title: 'Unknown error',
-          },
-        ],
-      });
+      throw err;
     });
 });
 
-router.post('/signin', authType.optional, (req, res, next) => {
-  if (!req.body.user || !req.body.user.email || !req.body.user.password) {
-    // @TODO: error management
-    return res.status(422).json({
-      errors: [{
-        title: 'Missing fields',
-        detail: 'Required fields: user[email], user[password]',
-      }],
-    });
-  }
-
-  return passport.authenticate('local', { session: false }, (err, user, info) => {
+router.post(
+  '/signin',
+  authType.optional,
+  validateSchema(userLoginSchema),
+  (req, res, next) => passport.authenticate('local', { session: false }, (err, user, info) => {
     if (err) {
       return next(err);
     }
 
     if (!user) {
-      // @TODO: error management
+    // @TODO: error management
       return res.status(400).json({
         errors: [{
-          title: 'Email or password not matching',
+          msg: 'Email or password not matching',
         }],
       });
     }
@@ -111,20 +80,14 @@ router.post('/signin', authType.optional, (req, res, next) => {
           accessToken,
         });
       });
-  })(req, res, next);
-});
+  })(req, res, next),
+);
 
-router.post('/refreshToken', authType.optional, (req, res) => {
-  if (!req.cookies.refreshToken) {
-    // @TODO: error management
-    return res.status(400).json({
-      errors: [{
-        title: 'Missing refresh token',
-      }],
-    });
-  }
-
-  return RefreshToken.findOne({
+router.post(
+  '/refreshToken',
+  authType.optional,
+  validateSchema(userRefreshTokenSchema),
+  (req, res) => RefreshToken.findOne({
     where: {
       value: req.cookies.refreshToken,
       active: true,
@@ -136,21 +99,18 @@ router.post('/refreshToken', authType.optional, (req, res) => {
   })
     .then((refreshToken) => {
       if (!refreshToken) {
-        // @TODO: error management
         return res.status(400).json({
           errors: [{
-            title: 'Invalid refresh token',
+            msg: 'Invalid refresh token',
           }],
         });
       }
 
       return jwt.verify(refreshToken.value, authConfig.refreshToken.secret, (err) => {
         if (err) {
-          // @TODO: error management
           return res.status(400).json({
             errors: [{
-              title: 'Invalid refresh token',
-              detail: 'Token probably expired',
+              msg: 'Invalid refresh token (probably expired)',
             }],
           });
         }
@@ -164,17 +124,12 @@ router.post('/refreshToken', authType.optional, (req, res) => {
         refreshToken.accessToken = accessToken;
         return refreshToken.save()
           .then(() => res.json({
-            user: {
-              id: refreshToken.user.id,
-              email: refreshToken.user.email,
-              firstname: refreshToken.user.firstname,
-              lastname: refreshToken.user.lastname,
-            },
+            user: refreshToken.user.json(),
             accessToken,
           }));
       });
-    });
-});
+    }),
+);
 
 router.post('/signout', authType.optional, async (req, res, next) => {
   const ret = {

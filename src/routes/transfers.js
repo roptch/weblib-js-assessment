@@ -2,59 +2,27 @@ const express = require('express');
 const { Op } = require('sequelize');
 
 const { authType } = require('../auth');
+const validateSchema = require('../middlewares/validateSchema');
 const { User, Team, Transfer } = require('../models');
+const { createTransferSchema, transferReplySchema } = require('../schemas/transfers');
 
 const router = express.Router();
 
-router.post('/', authType.required, async (req, res) => {
-  if (!req.body.transfer || !req.body.transfer.playerId || !req.body.transfer.targetTeamId) {
-    return res.status(400).json({
-      errors: [{
-        title: 'Missing fields',
-        detail: 'Required fields: transfer[playerId], transfer[targetTeamId]',
-      }],
-    });
-  }
+router.post('/', authType.required, validateSchema(createTransferSchema), async (req, res) => {
+  const { player, targetTeam } = req.body;
 
   if (req.user.team) {
     return res.status(400).json({
       errors: [{
-        title: 'You can\'t create a transfer while being a player in a team',
+        msg: 'You can\'t create a transfer while being a player in a team',
       }],
     });
   }
 
-  const targetTeam = await Team.findByPk(req.body.transfer.targetTeamId, {
-    include: [{
-      model: User,
-      as: 'owner',
-    }],
-  });
-  if (!targetTeam) {
-    return res.status(404).json({
-      errors: [{
-        title: 'Target team not found',
-      }],
-    });
-  }
   if (targetTeam.owner.id !== req.user.id) {
     return res.status(400).json({
       errors: [{
-        title: 'You are not authorized to manage this team',
-      }],
-    });
-  }
-
-  const player = await User.findByPk(req.body.transfer.playerId, {
-    include: [{
-      model: Team,
-      as: 'team',
-    }],
-  });
-  if (!player) {
-    return res.status(404).json({
-      errors: [{
-        title: 'Player not found',
+        msg: 'You are not authorized to manage this team',
       }],
     });
   }
@@ -63,7 +31,7 @@ router.post('/', authType.required, async (req, res) => {
     if (player.team.id === targetTeam.id) {
       return res.status(400).json({
         errors: [{
-          title: 'Impossible transfer because the player is already in the target team',
+          msg: 'Impossible transfer because the player is already in the target team',
         }],
       });
     }
@@ -72,7 +40,7 @@ router.post('/', authType.required, async (req, res) => {
     if (playerOwnedTeams.length > 0) {
       return res.status(400).json({
         errors: [{
-          title: 'You can\'t recruit this user to your team because he already manages other team(s)',
+          msg: 'You can\'t recruit this user to your team because he already manages other team(s)',
         }],
       });
     }
@@ -87,7 +55,7 @@ router.post('/', authType.required, async (req, res) => {
   if (existingTransfer) {
     return res.status(400).json({
       errors: [{
-        title: 'There is already a transfer process for this player into this team',
+        msg: 'There is already a transfer process for this player into this team',
       }],
     });
   }
@@ -109,43 +77,8 @@ router.post('/', authType.required, async (req, res) => {
   });
 });
 
-router.put('/:transferId', authType.required, async (req, res) => {
-  const transfer = await Transfer.findByPk(req.params.transferId, {
-    include: [{
-      model: User,
-      as: 'player',
-    }, {
-      model: Team,
-      as: 'initialTeam',
-      include: [{
-        model: User,
-        as: 'owner',
-      }],
-    }, {
-      model: Team,
-      as: 'targetTeam',
-      include: [{
-        model: User,
-        as: 'owner',
-      }],
-    }],
-  });
-  if (!transfer) {
-    return res.status(404).json({
-      errors: [{
-        title: 'Transfer not found',
-      }],
-    });
-  }
-
-  if (!('accept' in req.body)) {
-    return res.status(400).json({
-      errors: [{
-        title: 'Missing fields',
-        detail: 'Required fields: accept',
-      }],
-    });
-  }
+router.put('/:transferId', authType.required, validateSchema(transferReplySchema), async (req, res) => {
+  const { transfer } = req.params;
 
   let updated = false;
   if (transfer.status === Transfer.statuses.WAITING_TEAM_APPROVAL
@@ -195,7 +128,7 @@ router.put('/:transferId', authType.required, async (req, res) => {
 
   return res.status(400).json({
     errors: [{
-      title: 'You cannot act on this transfer',
+      msg: 'You cannot act on this transfer',
     }],
   });
 });
