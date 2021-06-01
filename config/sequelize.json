@@ -1,21 +1,21 @@
 {
   "development": {
     "username": "postgres",
-    "password": null,
+    "password": "postgres",
     "database": "weblib_development",
-    "host": "127.0.0.1",
+    "host": "db",
     "dialect": "postgres"
   },
   "test": {
     "username": "postgres",
-    "password": null,
+    "password": "postgres",
     "database": "weblib_test",
     "host": "127.0.0.1",
     "dialect": "postgres"
   },
   "production": {
     "username": "postgres",
-    "password": null,
+    "password": "postgres",
     "database": "weblib_production",
     "host": "127.0.0.1",
     "dialect": "postgres"

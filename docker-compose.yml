@@ -1,0 +1,43 @@
+version: "3.9"
+services:
+  app:
+    image: weblib-js-assessment
+    build: .
+    ports:
+      - '1337:1337'
+    links:
+      - db
+    depends_on: 
+      - migration
+      - db
+    volumes:
+      - .:/usr/src/app
+
+  migration:
+    image: weblib-js-assessment
+    build: .
+    links:
+      - db
+    depends_on:
+      - db
+    command: npx sequelize-cli db:migrate
+
+  test:
+    image: weblib-js-assessment
+    build: .
+    links:
+      - db
+    depends_on:
+      - migration
+      - db
+    command: npm ci
+
+  db:
+    image: postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - '5432:5432'
+    volumes:
+      - ./docker/postgres_init.d/:/docker-entrypoint-initdb.d
