@@ -10,8 +10,6 @@ services:
     depends_on: 
       - migration
       - db
-    volumes:
-      - .:/usr/src/app
 
   migration:
     image: weblib-js-assessment

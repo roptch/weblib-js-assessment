@@ -8,4 +8,4 @@ jobs:
 
     steps:
       - uses: actions/checkout@v1
-      - run: docker-compose up --force-recreate --exit-code-from test test
+      - run: docker-compose up --build --force-recreate --exit-code-from test test
