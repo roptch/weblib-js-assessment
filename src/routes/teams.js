@@ -34,7 +34,9 @@ router.post('/', authType.required, validateSchema(createTeamSchema), async (req
     ownerId: req.user.id,
   });
 
-  return res.json(team.json());
+  return res.json({
+    team: team.json(),
+  });
 });
 
 router.get(

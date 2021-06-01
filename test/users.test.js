@@ -14,9 +14,6 @@ describe('Users', () => {
   // Remove all users before each test
   beforeEach(() => User.destroy({ where: {} }));
 
-  // Close database connection when finished
-  after(() => sequelize.close());
-
   const userData = {
     email: 'test@test.test',
     password: 'test',
