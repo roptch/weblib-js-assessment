@@ -30,7 +30,7 @@ services:
     depends_on:
       - migration
       - db
-    command: npm ci
+    command: npm test
 
   db:
     image: postgres
