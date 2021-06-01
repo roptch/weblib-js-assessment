@@ -51,7 +51,6 @@ router.post(
     }
 
     if (!user) {
-    // @TODO: error management
       return res.status(400).json({
         errors: [{
           msg: 'Email or password not matching',
@@ -71,12 +70,7 @@ router.post(
         });
 
         return res.json({
-          user: {
-            id: user.id,
-            email: user.email,
-            firstname: user.firstname,
-            lastname: user.lastname,
-          },
+          user: user.json(),
           accessToken,
         });
       });
@@ -131,7 +125,7 @@ router.post(
     }),
 );
 
-router.post('/signout', authType.optional, async (req, res, next) => {
+router.post('/signout', authType.optional, async (req, res) => {
   const ret = {
     loggedOut: true,
   };
@@ -142,20 +136,15 @@ router.post('/signout', authType.optional, async (req, res, next) => {
 
   res.clearCookie('refreshToken');
 
-  try {
-    await RefreshToken.update({
-      active: false,
-    }, {
-      where: {
-        value: req.cookies.refreshToken,
-        active: true,
-      },
-    });
-  } catch (e) {
-    next();
-  }
+  await RefreshToken.update({
+    active: false,
+  }, {
+    where: {
+      value: req.cookies.refreshToken,
+      active: true,
+    },
+  });
 
-  res.clearCookie('refreshToken');
   return res.json(ret);
 });
 
@@ -164,16 +153,20 @@ router.get('/me', authType.required, async (req, res) => {
     // Team player
 
     return res.json({
-      ...req.user.json(),
-      team: req.user.team.json(),
+      user: {
+        ...req.user.json(),
+        team: req.user.team.json(),
+      },
     });
   }
 
   // Team(s) owner
   const ownedTeams = await req.user.getOwnedTeams();
   return res.json({
-    ...req.user.json(),
-    ownedTeams: ownedTeams.map((ownedTeam) => ownedTeam.json()),
+    user: {
+      ...req.user.json(),
+      ownedTeams: ownedTeams.map((ownedTeam) => ownedTeam.json()),
+    },
   });
 });
 
