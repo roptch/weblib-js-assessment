@@ -27,7 +27,7 @@ describe('Users', () => {
         .post('/users/signup')
         .send(userData)
         .end((err, res) => {
-          res.should.have.status(400);
+          res.should.have.status(200);
           res.body.should.have.property('user');
           res.body.user.should.have.property('email').eql(userData.email);
           res.body.user.should.have.property('firstName').eql(userData.firstName);
