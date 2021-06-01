@@ -20,8 +20,6 @@ services:
       - db
     depends_on:
       - db
-    volumes:
-      - .:/usr/src/app
     command: npx sequelize-cli db:migrate
 
   test:
@@ -32,8 +30,6 @@ services:
     depends_on:
       - migration
       - db
-    volumes:
-      - .:/usr/src/app
     command: npm test
 
   db:
