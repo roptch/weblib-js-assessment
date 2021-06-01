@@ -1,15 +1,5 @@
 const { User, Team } = require('../models');
 
-const checkTeam = (value, { req }) => Team.findByPk(value, {
-  include: [{
-    model: User,
-    as: 'players',
-  }, {
-    model: User,
-    as: 'owner',
-  }],
-});
-
 module.exports = {
   // create team
   createTeamSchema: {
