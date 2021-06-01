@@ -8,7 +8,7 @@ const { createUserWithTokens } = require('./helpers');
 chai.use(chaiHttp);
 const should = chai.should();
 
-describe('Users', () => {
+describe('Teams', () => {
   let manager;
   let managerToken;
   let player;
