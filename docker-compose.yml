@@ -10,6 +10,10 @@ services:
     depends_on: 
       - migration
       - db
+    environment:
+      WEBLIB_DB_HOST: db
+      WEBLIB_DB_USER: postgres
+      WEBLIB_DB_PW: postgres
 
   migration:
     image: weblib-js-assessment
@@ -18,6 +22,10 @@ services:
       - db
     depends_on:
       - db
+    environment:
+      WEBLIB_DB_HOST: db
+      WEBLIB_DB_USER: postgres
+      WEBLIB_DB_PW: postgres
     command: npx sequelize-cli db:migrate
 
   test:
@@ -28,6 +36,10 @@ services:
     depends_on:
       - migration
       - db
+    environment:
+      WEBLIB_DB_HOST: db
+      WEBLIB_DB_USER: postgres
+      WEBLIB_DB_PW: postgres
     command: npm test
 
   db:
